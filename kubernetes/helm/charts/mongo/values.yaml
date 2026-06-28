@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: mongo
+  tag: "6.0"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 27017
+  headlessName: mongo-headless
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+readinessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+terminationGracePeriodSeconds: 30

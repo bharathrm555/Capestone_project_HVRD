@@ -1,0 +1,53 @@
+Option 2 — Delete Using kubectl (Recommended)
+
+First list apps:
+
+kubectl get applications -n argocd
+
+Delete all applications:
+
+kubectl delete applications --all -n argocd
+
+
+delete:
+eksctl delete nodegroup \
+  --cluster=shopnow-cluster \
+  --region=ap-south-1 \
+  --name=shopnow
+
+eksctl delete cluster \
+  --name=shopnow-cluster \
+  --region=ap-south-1
+
+aws eks list-clusters --region ap-south-1
+
+aws ec2 delete-key-pair \
+  --key-name eks-nodegroup-key \
+  --region ap-south-1
+
+rm eks-nodegroup-key.pem  (local)
+
+aws iam list-open-id-connect-providers
+
+aws iam delete-open-id-connect-provider \
+  --open-id-connect-provider-arn <OIDC_ARN>
+
+aws iam delete-open-id-connect-provider \
+  --open-id-connect-provider-arn arn:aws:iam::254292659362:oidc-provider/oidc.eks.ap-south-1.amazonaws.com/id/20BC84A3F1FC691114C361B6F1AFA6AD
+
+
+
+
+
+
+
+
+git steps
+git clean
+rm -rf .git
+git init
+git add .
+git commit -m "clean repo without secrets"
+git branch -M main
+git remote add origin https://github.com/bharathrm555/Capestone_project_HVRD.git
+git push -u origin main --force

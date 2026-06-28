@@ -1,0 +1,300 @@
+---
+- name: Setup Docker, Docker Compose v2 and Jenkins on Ubuntu 24
+  hosts: all
+  become: yes
+
+  vars:
+    jenkins_keyring: /etc/apt/keyrings/jenkins-keyring.asc
+    docker_keyring: /etc/apt/keyrings/docker.gpg
+
+  tasks:
+
+    # -----------------------------
+    # SYSTEM UPDATE
+    # -----------------------------
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    # -----------------------------
+    # DOCKER INSTALLATION
+    # -----------------------------
+    - name: Ensure keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /tmp/docker.asc
+
+    - name: Convert Docker GPG key
+      command: gpg --dearmor -o {{ docker_keyring }} /tmp/docker.asc
+      args:
+        creates: "{{ docker_keyring }}"
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by={{ docker_keyring }}] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+
+    - name: Update apt cache after Docker repo
+      apt:
+        update_cache: yes
+
+    - name: Install Docker Engine & plugins
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: latest
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # -----------------------------
+    # JAVA INSTALLATION
+    # -----------------------------
+    - name: Install Java and fontconfig
+      apt:
+        name:
+          - fontconfig
+          - openjdk-21-jre
+        state: present
+
+    # -----------------------------
+    # JENKINS INSTALLATION
+    # -----------------------------
+    - name: Download Jenkins GPG key
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+        dest: "{{ jenkins_keyring }}"
+        mode: '0644'
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: "deb [signed-by={{ jenkins_keyring }}] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    - name: Update apt cache after Jenkins repo
+      apt:
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Enable and start Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    # -----------------------------
+    # PERMISSIONS & RESTARTS
+    # -----------------------------
+    - name: Add jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    - name: Restart Docker
+      systemd:
+        name: docker
+        state: restarted
+
+    - name: Restart Jenkins
+      systemd:
+        name: jenkins
+        state: restarted
+
+    # -----------------------------
+    # CLEANUP
+    # -----------------------------
+    - name: Remove temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/docker.asc
+
+
+# -----------------------------
+# AWS CLI INSTALLATION (your steps converted)
+# -----------------------------
+
+    - name: Install unzip dependency
+      apt:
+        name: unzip
+        state: present
+        update_cache: yes
+
+    - name: Download AWS CLI v2 zip
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+
+    - name: Extract AWS CLI zip
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Install AWS CLI v2
+      command: >
+        /tmp/aws/install -i /usr/local/aws-cli -b /usr/local/bin --update
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Verify AWS CLI installation
+      command: aws --version
+      register: aws_output
+      changed_when: false
+
+    - debug:
+        var: aws_output.stdout
+
+
+
+    
+
+    # -----------------------------
+    # CLEANUP
+    # -----------------------------
+    - name: Remove AWS CLI temp files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/aws
+        - /tmp/awscliv2.zip
+
+
+# -----------------------------
+# KUBECTL INSTALLATION
+# -----------------------------
+
+    - name: Download kubectl binary
+      get_url:
+        url: https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
+        dest: /tmp/kubectl
+        mode: '0755'
+
+    - name: Move kubectl to /usr/local/bin
+      command: mv /tmp/kubectl /usr/local/bin/kubectl
+      args:
+        creates: /usr/local/bin/kubectl
+
+    - name: Verify kubectl installation
+      command: kubectl version --client --short
+      register: kubectl_output
+      changed_when: false
+
+    - debug:
+        var: kubectl_output.stdout
+
+# -----------------------------
+# EKSCTL INSTALLATION
+# -----------------------------
+
+    - name: Download eksctl tar.gz
+      get_url:
+        url: https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz
+        dest: /tmp/eksctl.tar.gz
+
+    - name: Extract eksctl binary
+      unarchive:
+        src: /tmp/eksctl.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move eksctl to /usr/local/bin
+      command: mv /tmp/eksctl /usr/local/bin/eksctl
+      args:
+        creates: /usr/local/bin/eksctl
+
+    - name: Verify eksctl installation
+      command: eksctl version
+      register: eksctl_output
+      changed_when: false
+
+    - debug:
+        var: eksctl_output.stdout
+
+    # -----------------------------
+    # CLEANUP
+    # -----------------------------
+    - name: Remove eksctl temp files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/eksctl
+        - /tmp/eksctl.tar.gz
+
+    # -----------------------------
+    # TRIVY INSTALLATION
+    # -----------------------------
+
+    - name: Remove old Trivy repo (if exists)
+      file:
+        path: /etc/apt/sources.list.d/trivy.list
+        state: absent
+
+    - name: Remove old Trivy keyring
+      file:
+        path: /usr/share/keyrings/trivy.gpg
+        state: absent
+
+    - name: Download Trivy GPG key (ASCII)
+      get_url:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        dest: /tmp/trivy.asc
+
+    - name: Convert Trivy key to GPG (IMPORTANT)
+      command: >
+        gpg --dearmor -o /usr/share/keyrings/trivy.gpg /tmp/trivy.asc
+      args:
+        creates: /usr/share/keyrings/trivy.gpg
+
+    - name: Add Trivy repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+        state: present
+        filename: trivy
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Trivy
+      apt:
+        name: trivy
+        state: present

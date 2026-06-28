@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shopnow-umbrella
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/bharathrm555/Capestone_project_HVRD.git'
+    targetRevision: HEAD
+    path: kubernetes/argocd/apps
+  destination:
+    server: 'https://E7A7A4713A01052C7BC01F7A8EB2CB0E.gr7.ap-south-1.eks.amazonaws.com'
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false

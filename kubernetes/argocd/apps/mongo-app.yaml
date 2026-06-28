@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mongo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/bharathrm555/Capestone_project_HVRD.git'
+    targetRevision: HEAD
+    path: kubernetes/helm/charts/mongo
+    helm:
+      valueFiles: []
+      releaseName: mongo
+  destination:
+    server: 'https://E7A7A4713A01052C7BC01F7A8EB2CB0E.gr7.ap-south-1.eks.amazonaws.com'
+    namespace: shopnow-demo
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "mongo.fullname" . }}
+spec:
+  serviceName: {{ .Values.service.headlessName }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "mongo.fullname" . }}
+
+  template:
+    metadata:
+      labels:
+        app: {{ include "mongo.fullname" . }}
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+
+      containers:
+        - name: mongo
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - containerPort: {{ .Values.service.port }}
+
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+
+      volumes:
+        - name: mongo-data
+<<<<<<< HEAD
+          emptyDir: {}
+=======
+          emptyDir: {}
+>>>>>>> a425110836d48c89a705a02d927ed591fcbb2f7f
